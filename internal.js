@@ -1,0 +1,15 @@
+'use strict';
+const menu=document.querySelector('.menu-toggle'),nav=document.querySelector('#nav');
+function closeMenu(){nav.classList.remove('open');menu.setAttribute('aria-expanded','false');menu.setAttribute('aria-label','Abrir menu')}
+menu.addEventListener('click',()=>{const open=nav.classList.toggle('open');menu.setAttribute('aria-expanded',String(open));menu.setAttribute('aria-label',open?'Fechar menu':'Abrir menu')});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&nav.classList.contains('open')){closeMenu();menu.focus()}});
+document.addEventListener('click',e=>{if(!e.target.closest('.header'))closeMenu()});
+const videos=[...document.querySelectorAll('video')],reduced=matchMedia('(prefers-reduced-motion: reduce)');
+let videoPaused=false;
+videos.forEach(v=>{const b=document.createElement('button');b.className='inner-video-control';b.textContent='Ⅱ';b.setAttribute('aria-label','Pausar vídeo');b.setAttribute('aria-pressed','false');b.addEventListener('click',()=>{videoPaused=!videoPaused;b.textContent=videoPaused?'▷':'Ⅱ';b.setAttribute('aria-pressed',String(videoPaused));b.setAttribute('aria-label',videoPaused?'Retomar vídeo':'Pausar vídeo');syncVideo()});v.parentElement.append(b)});
+const observer=new IntersectionObserver(entries=>entries.forEach(({target,isIntersecting})=>{target.dataset.visible=String(isIntersecting);if(isIntersecting&&!reduced.matches&&!document.hidden&&!videoPaused)target.play().catch(()=>{});else target.pause()}),{threshold:.15});videos.forEach(v=>observer.observe(v));
+function syncVideo(){videos.forEach(v=>{if(videoPaused||reduced.matches||document.hidden||v.dataset.visible!=='true')v.pause();else v.play().catch(()=>{})})}reduced.addEventListener('change',syncVideo);document.addEventListener('visibilitychange',syncVideo);
+const sector=document.querySelector('#sector-filter'),capability=document.querySelector('#capability-filter');
+if(sector&&capability){const cards=[...document.querySelectorAll('.catalog .case-card')];function readQuery(){const params=new URLSearchParams(location.search);for(const [select,key] of [[sector,'setor'],[capability,'capacidade']]){const v=params.get(key)||'';select.value=[...select.options].some(o=>o.value===v)?v:''}}
+function filter(updateUrl=true){let count=0;cards.forEach(c=>{c.hidden=Boolean((sector.value&&c.dataset.sector!==sector.value)||(capability.value&&c.dataset.capability!==capability.value));if(!c.hidden)count++});document.querySelector('.result-count').textContent=count+' '+(count===1?'projeto':'projetos');document.querySelector('.empty-cases').hidden=count!==0;if(updateUrl){const url=new URL(location.href);for(const [key,value] of [['setor',sector.value],['capacidade',capability.value]]){if(value)url.searchParams.set(key,value);else url.searchParams.delete(key)}history.pushState(null,'',url)}}
+readQuery();filter(false);sector.addEventListener('change',()=>filter());capability.addEventListener('change',()=>filter());document.querySelector('#clear-filters').addEventListener('click',()=>{sector.value='';capability.value='';filter();sector.focus()});window.addEventListener('popstate',()=>{readQuery();filter(false)})}
